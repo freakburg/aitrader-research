@@ -1,0 +1,10 @@
+alpaca-py>=0.30
+pandas>=2.0
+numpy>=1.26
+scikit-learn>=1.4
+python-dotenv>=1.0
+pytest>=8.0
+yfinance>=0.2
+matplotlib>=3.8
+arch>=7.0
+statsmodels>=0.14
