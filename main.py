@@ -122,6 +122,7 @@ def main():
     rg.add_argument("--workers", type=int, default=None)
     gl = sub.add_parser("globalstudy", help="frozen vol-targeting rule across eras, countries and asset types")
     gl.add_argument("--reps", type=int, default=300)
+    sub.add_parser("stockstudy", help="individual big stocks vs an index fund (rolling windows, random baskets, past mega-caps)")
     sr = sub.add_parser("sweep-report", help="summarize saved sweep results")
     sr.add_argument("--source", choices=["alpaca", "yahoo"], default="alpaca")
     gs = sub.add_parser("gaps-session", help="unattended: wait for open, record full sessions for N days")
@@ -216,6 +217,9 @@ def main():
     elif args.cmd == "globalstudy":
         from aitrader.globalstudy import run_global_study
         run_global_study(args.reps)
+    elif args.cmd == "stockstudy":
+        from aitrader.stockstudy import run_stock_study
+        run_stock_study()
     elif args.cmd == "sweep-report":
         from aitrader.sweep import report
         print(report("" if args.source == "alpaca" else args.source))

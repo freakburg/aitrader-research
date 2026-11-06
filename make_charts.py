@@ -206,6 +206,65 @@ def riskstudy_charts():
                  "riskstudy_multiasset.png", shade_from=holdout)
 
 
+def stockstudy_charts():
+    """Single stocks vs SPY by horizon, and the biggest US companies at past dates vs SPY over the next 10 years."""
+    t1 = pd.read_csv(DATA_DIR / "stockstudy_single.csv", index_col=0)
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.4))
+    ax = axes[0]
+    ax.bar(t1.index, t1["beat_spy"] * 100, color=BLUE, width=0.6)
+    ax.axhline(50, color=INK2, lw=1, ls=(0, (4, 3)))
+    for i, v in enumerate(t1["beat_spy"] * 100):
+        ax.text(i, v + 1.2, f"{v:.0f}%", ha="center", fontsize=9, color=INK)
+    ax.set_ylim(0, 85)
+    ax.set_ylabel("% of stock-windows that beat SPY")
+    ax.set_title("How often a stock beats SPY\n(dashed line = a coin flip)", loc="left", fontsize=10, color=INK, pad=8)
+    ax = axes[1]
+    x = np.arange(len(t1))
+    for i in range(len(t1)):
+        ax.plot([i, i], [t1["p10_vs_spy"].iloc[i], t1["p90_vs_spy"].iloc[i]], color=AXIS, lw=6, solid_capstyle="round")
+    ax.scatter(x, t1["median_vs_spy"], s=60, color=BLUE, zorder=3, edgecolor=SURFACE, linewidth=1.5)
+    ax.axhline(1, color=INK2, lw=1, ls=(0, (4, 3)))
+    ax.set_yscale("log")
+    ax.set_yticks([0.5, 1, 2, 4], ["0.5x", "1x", "2x", "4x"])
+    ax.minorticks_off()
+    ax.set_xticks(x, t1.index)
+    ax.set_ylabel("Stock's growth as a multiple of SPY's")
+    ax.set_title("The spread of outcomes\n(dot = median, bar = 10th to 90th percentile)", loc="left", fontsize=10, color=INK, pad=8)
+    for a in axes:
+        a.grid(axis="x", visible=False)
+        a.spines["left"].set_visible(False)
+        a.tick_params(length=0)
+    fig.suptitle("Even among today's survivors, single stocks vary enormously around the index", x=0.01, ha="left",
+                 fontsize=12.5, fontweight="semibold", color=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig(OUT / "stockstudy_single.png", dpi=180)
+    plt.close(fig)
+    print("wrote", OUT / "stockstudy_single.png")
+
+    t3 = pd.read_csv(DATA_DIR / "stockstudy_snapshots.csv")
+    t3 = t3[t3.years == 10].reset_index(drop=True)
+    fig, ax = plt.subplots(figsize=(9, 4.6))
+    x = np.arange(len(t3))
+    w = 0.36
+    ax.bar(x - w / 2, t3["spy_multiple"], w, color=BENCH, label="SPY (index fund)")
+    ax.bar(x + w / 2, t3["basket_best_case"], w, color=BLUE, label="The 10 biggest companies")
+    for i, r in t3.iterrows():
+        if r["basket_best_case"] != r["basket_worst_case"]:
+            ax.plot([i + w / 2] * 2, [r["basket_worst_case"], r["basket_best_case"]], color=INK, lw=1.6)
+        ax.text(i - w / 2, r["spy_multiple"] + 0.07, f"{r['spy_multiple']:.1f}x", ha="center", fontsize=9, color=INK)
+        ax.text(i + w / 2, r["basket_best_case"] + 0.07, f"{r['basket_best_case']:.1f}x", ha="center", fontsize=9, color=INK)
+    ax.set_xticks(x, [f"Biggest at end of {s}\nheld {r['window'][:4]}-{r['window'][12:16]}\n"
+                      f"{int(r['stocks_beating_spy'])} of {int(r['stocks_known'])} stocks beat SPY"
+                      for s, (_, r) in zip(t3["snapshot"], t3.iterrows())])
+    ax.axhline(1, color=AXIS, lw=1)
+    ax.set_ylabel("Growth of $1 over 10 years")
+    ax.grid(axis="x", visible=False)
+    ax.legend(loc="upper left")
+    finish(ax, "The biggest companies of the past lost to the index twice and won twice",
+           "Equal-weight, buy-and-hold, dividends included. Approximate lists. The line on the 1999 bar bounds Lucent, which no longer exists.",
+           "stockstudy_snapshots.png", fig)
+
+
 def globalstudy_chart():
     """Sharpe change vs buy-and-hold in 19 markets for the frozen volatility-targeting rule and the 200-day trend rule."""
     df = pd.read_csv(DATA_DIR / "globalstudy_markets.csv")
@@ -384,6 +443,7 @@ def main():
     volforecast_chart()
     regime_chart()
     globalstudy_chart()
+    stockstudy_charts()
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ in US equities and did not pass a strict luck test across asset classes.
 | `aitrader/volforecast.py` | Nine volatility forecasters (EWMA, GARCH, HAR, gradient boosting, neural net) scored on accuracy and on strategy impact |
 | `aitrader/regime.py` | Markov-switching regime model (walk-forward) as an overlay on buy and hold, with a random-timing luck test and drawdown/duration diagnostics |
 | `aitrader/globalstudy.py` | The frozen volatility rule and 200-day trend rule on 19 markets (S&P 500 since 1960, 9 countries, 9 other assets) with paired and pattern-free bootstrap tests |
+| `aitrader/stockstudy.py` | Individual big stocks vs SPY: rolling-window win rates, random baskets, and the largest companies at past dates with bounds for missing data |
 | `aitrader/gap.py` | Cross-market gap test (SPY vs IVV): are apparent price gaps profitable after bid/ask spread, fees and latency? |
 | `aitrader/paper.py` | One-shot paper trader against Alpaca's paper account, with a CSV decision log |
 | `tests/` | Lookahead checks for every strategy, cost and walk-forward behavior, gap detector |
@@ -352,6 +353,60 @@ average Sharpe change excludes zero.
 - **Switching markets did not rescue volatility targeting.** The forecasting works everywhere, but the benefit to returns
   per unit of risk was not found in other countries, eras or asset types; the dependable effect is a smaller worst drop.
 
+### 12. Individual big stocks vs an index fund (154 large US stocks, 1993-2026)
+How would owning individual big companies compare with SPY (dividends included)? Three parts, fixed in advance.
+Parts 1 and 2 use today's large caps, which are survivors, so **their win rates are upper bounds** and flatter stock picking.
+Part 3 avoids hindsight by taking the 10 largest US companies at past dates (approximate lists written from memory, not an
+official ranking) and holding them equal-weight. A company with no price history left (Lucent, 1999) is bounded: best case it
+matches SPY, worst case it goes to zero. Windows overlap heavily, so read the numbers as a pattern, not precise odds.
+
+**Part 1: one stock vs SPY over the next N years, every month-end start (survivors only)**
+
+| Horizon | Stock beat SPY | Median stock vs SPY | 10th to 90th percentile | Ended below its start | Ended with under half of SPY's growth |
+|---|---|---|---|---|---|
+| 1 year | 53% | 1.01x | 0.75x to 1.37x | 29% | 1% |
+| 3 years | 55% | 1.05x | 0.63x to 1.77x | 19% | 5% |
+| 5 years | 57% | 1.09x | 0.57x to 2.17x | 14% | 7% |
+| 10 years | 63% | 1.24x | 0.52x to 3.16x | 7% | 9% |
+| 20 years | 69% | 1.50x | 0.49x to 5.34x | 3% | 10% |
+
+![How often a stock beats SPY, and the spread of outcomes](docs/stockstudy_single.png)
+
+**Part 2: random equal-weight baskets of those stocks over 10 years (500 random baskets per start month)**
+
+| Stocks held | Beat SPY | Median vs SPY | 10th percentile vs SPY | Trailed SPY by 30%+ |
+|---|---|---|---|---|
+| 1 | 64% | 1.25x | 0.53x | 18% |
+| 3 | 78% | 1.44x | 0.79x | 6% |
+| 5 | 84% | 1.50x | 0.89x | 3% |
+| 10 | 90% | 1.58x | 1.00x | 1% |
+| 20 | 94% | 1.67x | 1.10x | 0.3% |
+| 30 | 96% | 1.72x | 1.15x | 0.1% |
+
+**Part 3: the 10 largest US companies at each date, held 10 years (no hindsight)**
+
+| Biggest at end of | SPY | The 10 biggest (worst to best case) | Stocks beating SPY | Best / worst stock |
+|---|---|---|---|---|
+| 1999 | 0.94x | 0.74x to 0.84x | 2 of 9 | Exxon / Citigroup |
+| 2004 | 2.06x | 1.42x | 4 of 10 | Exxon / AIG |
+| 2009 | 3.50x | 3.82x | 3 of 10 | Apple / GE |
+| 2014 | 3.42x | 4.20x | 4 of 10 | Microsoft / GE |
+
+![The biggest companies at past dates vs SPY over the next 10 years](docs/stockstudy_snapshots.png)
+
+- **Parts 1 and 2 look good for stocks, and are mostly survivorship.** A random basket of 20 survivors beat SPY 94% of the
+  time, which no one could have known in advance: it reflects picking companies that, by today, are known to have won, plus
+  an equal-weight tilt away from the handful of mega-caps that dominate the index.
+- **Without hindsight it is closer to a coin flip.** The 10 biggest companies beat SPY in 3 of 8 windows (4 dates, held 5 and
+  10 years). The 1999 and 2004 groups lost badly (the 2004 group's AIG and Citigroup were hit by the financial crisis); the 2009
+  and 2014 groups won, carried by Apple and Microsoft. In each decade only 2 to 4 of the 10 beat SPY individually.
+- **Concentration is the real risk.** Among survivors, one stock had an 18% chance of trailing SPY by 30% or more over ten
+  years, against 0.1% for a basket of 30. Even among survivors, one stock in eleven ended with less than half of SPY's growth
+  over 10 years; for the real population including failures it would be higher.
+- **What it does and does not show.** It gives no evidence that picking big individual stocks reliably beats an index fund,
+  and a clear picture of wider outcomes. It cannot rule out that a skilled stock picker exists. The lists in part 3 are
+  approximate; with a point-in-time constituent database (see "Not tested") this could be done exactly.
+
 ## Conclusions
 
 1. **Beating buy-and-hold on return is not supported by the evidence here**, for any approach tested.
@@ -382,6 +437,10 @@ average Sharpe change excludes zero.
    The 200-day trend rule did better on average (15 of 19 markets), but its edge was concentrated before 2010 and faded in
    the most recent data, so it is running as a second forward-test track (IVV, the same S&P 500 index, so the two
    tracks hold separate positions) rather than being treated as a proven improvement.
+9. **Big individual stocks did not reliably beat an index fund.** Among today's survivors a single stock beat SPY 63% of
+   the time over 10 years and random 20-stock baskets 94%, but that is hindsight. Taking the 10 largest companies at past
+   dates, the group beat SPY in only 3 of 8 windows, only 2 to 4 of the 10 beat it individually, and one stock had an 18%
+   chance of trailing the index by 30% or more. The clearest effect of owning individual stocks is wider outcomes.
 
 ## Limitations
 
@@ -428,6 +487,7 @@ python main.py crosssec --neutral                    # beta-hedged check (7 vari
 python main.py crosssec --neutral --mlp --reps 500   # small neural-net variants
 python main.py regime                                # Markov-switching regime overlay on 7 index funds (~10 min)
 python main.py globalstudy                           # frozen vol rule + trend rule across 19 markets and eras (~10 min)
+python main.py stockstudy                            # individual big stocks vs SPY (needs the stocks cached by crosssec --refresh)
 ```
 
 ```bash
