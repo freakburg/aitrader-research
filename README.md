@@ -33,6 +33,7 @@ in US equities and did not pass a strict luck test across asset classes.
 | `aitrader/regime.py` | Markov-switching regime model (walk-forward) as an overlay on buy and hold, with a random-timing luck test and drawdown/duration diagnostics |
 | `aitrader/globalstudy.py` | The frozen volatility rule and 200-day trend rule on 19 markets (S&P 500 since 1960, 9 countries, 9 other assets) with paired and pattern-free bootstrap tests |
 | `aitrader/stockstudy.py` | Individual big stocks vs SPY: rolling-window win rates, random baskets, and the largest companies at past dates with bounds for missing data |
+| `aitrader/govstakes.py` | Sourced list of reported US government equity stakes (confidence and sources per deal) and how the listed stocks did since each announcement vs SPY |
 | `aitrader/gap.py` | Cross-market gap test (SPY vs IVV): are apparent price gaps profitable after bid/ask spread, fees and latency? |
 | `aitrader/paper.py` | One-shot paper trader against Alpaca's paper account, with a CSV decision log |
 | `tests/` | Lookahead checks for every strategy, cost and walk-forward behavior, gap detector |
@@ -407,6 +408,87 @@ matches SPY, worst case it goes to zero. Windows overlap heavily, so read the nu
   and a clear picture of wider outcomes. It cannot rule out that a skilled stock picker exists. The lists in part 3 are
   approximate; with a point-in-time constituent database (see "Not tested") this could be done exactly.
 
+### 13. What the US government has invested in (reported equity stakes, 2025-2026)
+Since mid-2025 the US government has taken direct equity stakes, warrants or "golden shares" in a growing list of companies,
+mostly in chips, critical minerals, defense, nuclear and quantum computing. `python main.py govstakes` holds a sourced
+per-deal list and checks how the listed stocks have done since each announcement. **It is a research list compiled by hand from
+public reporting, not an official register**: CNBC (7 Feb 2026), a US News/WTOP piece (21 Jun 2026, citing the Council on Foreign
+Relations deal tracker), a newsletter (31 May 2026) and a Trilogy Metals SEC release (11 Sep 2026). The sources disagree on the
+total (at least 10, 17 or 26 deals) and on some dates and terms, so every row carries a confidence level and the sources behind
+it, and deals announced after the newest source are not covered.
+
+- **21 deals tracked, 11 in listed companies.** Examples: Intel (about 10%, 433.3M shares at $20.47), MP Materials (about 15% if
+  the preferred converts), Lithium Americas (5%), Trilogy Metals (about 10%, closed in September 2026), USA Rare Earth (letter
+  of intent), plus golden-share, private-company and quantum-computing deals.
+- **Only 1 of 9 listed stocks with a known announcement date beat the S&P 500 since then** (close on announcement day to 16 Nov 2026,
+  dividends included, SPY over the same dates):
+
+| Stock | Announced | Since announcement | S&P 500, same dates |
+|---|---|---|---|
+| Intel (INTC) | 22 Aug 2025 | +124% | +16% |
+| IBM | 21 May 2026 | -3% | +0% |
+| MP Materials (MP) | 10 Jul 2025 | -20% | +20% |
+| L3Harris (LHX) | 13 Jan 2026 | -22% | +8% |
+| Infleqtion (INFQ) | 21 May 2026 | -46% | +0% |
+| GlobalFoundries (GFS) | 21 May 2026 | -51% | +0% |
+| Rigetti (RGTI) | 21 May 2026 | -59% | +0% |
+| D-Wave (QBTS) | 21 May 2026 | -66% | +0% |
+| USA Rare Earth (USAR) | 26 Jan 2026 | -73% | +8% |
+
+- **The Intel stake is worth about $24.0B at $55.47, against about $8.9B paid** (share count only, warrants ignored). Intel closed
+  near $141 in June and has fallen sharply since, including a 28.6% drop after its 30 Oct earnings report, which I confirmed
+  against a second news source. The June figures in the articles match the price data used here.
+- **Read it carefully.** Several deals are only letters of intent or proposals, announcement dates for Lithium Americas and Trilogy
+  Metals are not given in the sources (so they are left out of the comparison), the quantum names are a single announcement date, and
+  stakes agreed by a government are not stock picks. This is a snapshot of nine stocks over different windows, not evidence about
+  what happens to stocks the government buys.
+- **Congress trades are not included.** The two free community feeds that republished House and Senate trade disclosures now
+  refuse access, and the official filings are scanned documents on government portals, so there is nothing reliable to chart
+  without a paid data feed. A panel filled with guesses would be worse than none.
+- A private web dashboard (a data page with the stakes table, the growth chart and the sources) is built from the same files; it
+  is not part of this repository.
+
+**Why the government did it (as reported)**
+
+The purposes below are the ones described in the news reports and filings used for this list, not a judgment on whether the deals will work.
+
+- **Chips and quantum computing:** Commerce Department money from the CHIPS Act, now taken partly as shares. For Intel, grants that had not been paid out were converted into 433.3M shares.
+- **Critical minerals and rare earths:** building a domestic supply chain for magnets, lithium and metals used in defense and electronics. MP Materials' deal also set a price floor and a purchase agreement.
+- **Defense:** $1B toward rocket motors for missiles, converting into shares if that unit goes public.
+- **Nuclear power:** financing for new reactors in return for a participation interest in Westinghouse.
+- **Jobs and plants:** at U.S. Steel a golden share lets the government veto closing plants or moving headquarters, with no economic stake.
+- **Protecting taxpayers:** Lithium Americas' stake is described as a cash buffer against taxpayer risk on a federal loan.
+
+Commentators have questioned whether this is a good precedent, and one news summary mentioned a pending lawsuit over the Intel stake (not verified here).
+
+**All 21 reported deals**
+
+| Company | Agency | Status | Purpose | Confidence |
+|---|---|---|---|---|
+| Intel (INTC) | Commerce Dept (reports differ) | Agreed | Chipmaking; converted CHIPS Act grants | High |
+| MP Materials (MP) | Defense Dept | Agreed | Rare earth magnets and supply | High |
+| Lithium Americas (LAC) | Energy Dept | Agreed | Lithium mine in Nevada | High |
+| Trilogy Metals (TMQ) | Dept of War per SEC release (news said White House) | Closed | Alaska copper-zinc project and Ambler Road | High |
+| USA Rare Earth (USAR) | Commerce Dept | Letter of intent | Rare earth magnets, Oklahoma and Texas | Medium |
+| L3Harris (missile unit) (LHX) | Pentagon | Announced | Missile and rocket motors | Medium |
+| Westinghouse | Commerce Dept | Agreed (conditional) | Financing for nuclear plants (owned by Cameco and Brookfield) | Medium |
+| Vulcan Elements | Commerce (equity) and Pentagon (warrants, loan) | Agreed | Rare earth magnet supply chain | Medium |
+| xLight | Commerce Dept | Letter of intent | Lasers for chip manufacturing | Medium |
+| U.S. Steel | Federal government | Agreed | Conditions on the Nippon Steel acquisition; stock no longer trades | High |
+| IBM (quantum foundry unit) (IBM) | Commerce Dept | Letter of intent | Quantum chip manufacturing | Medium |
+| GlobalFoundries (GFS) | Commerce Dept | Letter of intent | Chip manufacturing | Low |
+| D-Wave Quantum (QBTS) | Commerce Dept | Letter of intent | Quantum computing | Low |
+| Rigetti Computing (RGTI) | Commerce Dept | Letter of intent | Quantum computing | Low |
+| Infleqtion (INFQ) | Commerce Dept | Letter of intent | Quantum computing | Low |
+| Atom Computing | Commerce Dept | Letter of intent | Quantum computing | Low |
+| PsiQuantum | Commerce Dept | Letter of intent | Quantum computing | Low |
+| Quantinuum | Commerce Dept | Letter of intent | Quantum computing | Low |
+| Diraq | Commerce Dept | Letter of intent | Quantum computing | Low |
+| ReElement Technologies | Not stated | Reported | Rare earth processing | Low |
+| Korea Zinc | Not stated | Reported | Metals | Low |
+
+Confidence: High means a filing or several outlets agree, Medium means one or two outlets or conditional terms, Low means a single secondary source. Instruments, amounts, dates and sources for each deal are in `aitrader/govstakes.py`.
+
 ## Conclusions
 
 1. **Beating buy-and-hold on return is not supported by the evidence here**, for any approach tested.
@@ -488,6 +570,7 @@ python main.py crosssec --neutral --mlp --reps 500   # small neural-net variants
 python main.py regime                                # Markov-switching regime overlay on 7 index funds (~10 min)
 python main.py globalstudy                           # frozen vol rule + trend rule across 19 markets and eras (~10 min)
 python main.py stockstudy                            # individual big stocks vs SPY (needs the stocks cached by crosssec --refresh)
+python main.py govstakes                             # US government equity stakes: sourced list + performance since announcement
 ```
 
 ```bash

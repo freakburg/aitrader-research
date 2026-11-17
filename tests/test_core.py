@@ -176,6 +176,24 @@ def test_forward_tracks_are_isolated_and_frozen(tmp_path, monkeypatch):
         paper.ensure_spec("trend")
 
 
+def test_govstakes_performance_uses_announcement_date_and_same_window_for_spy():
+    from aitrader.govstakes import STAKES, performance_row
+    idx = pd.bdate_range("2025-01-01", periods=300)
+    px = pd.Series(np.linspace(100, 200, 300), index=idx)   # doubles over the sample
+    spy = pd.Series(np.linspace(100, 150, 300), index=idx)
+    s = {"company": "X", "ticker": "X", "ref_date": str(idx[100].date())}
+    r = performance_row(s, px, spy)
+    assert r["ref_date"] == str(idx[100].date())
+    assert abs(r["multiple"] - 200 / px.iloc[100]) < 1e-3
+    assert abs(r["spy_multiple"] - 150 / spy.iloc[100]) < 1e-3     # SPY measured over the same dates, not from its first day
+    # a weekend announcement date starts from the next trading day
+    s2 = {**s, "ref_date": "2025-03-01"}                           # a Saturday
+    assert performance_row(s2, px, spy)["ref_date"] == "2025-03-03"
+    # the list never claims a comparison without a date, and every row names its sources and a confidence level
+    assert all(x["sources"] and x["confidence"] in {"High", "Medium", "Low"} for x in STAKES)
+    assert all(x["ref_date"] is None or x["listed"] for x in STAKES)
+
+
 def test_costs_reduce_returns():
     df = synthetic_bars(500)
     s = SMACrossover(5, 20)
